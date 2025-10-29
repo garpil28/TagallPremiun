@@ -214,4 +214,11 @@ def main():
     app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    main() 
+    
+# ===== AUTO UPDATER =====
+import threading
+from autoupdate import auto_update_loop
+
+threading.Thread(target=auto_update_loop, daemon=True).start()
+
