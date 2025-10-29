@@ -1,153 +1,121 @@
-import json, os, sqlite3, shutil
+import os
+import sqlite3
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
-    MessageHandler, ContextTypes, filters
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 from apscheduler.schedulers.background import BackgroundScheduler
+from config import OWNER_ID, OWNER_USERNAME, OWNER_NAME, BOT_NAME, VERSION, BOT_TOKEN, API_ID, API_HASH
 
-# ================= CONFIG =================
-CONFIG_PATH = "config.json"
-if not os.path.exists(CONFIG_PATH):
-    raise FileNotFoundError("❌ File config.json tidak ditemukan!")
-
-with open(CONFIG_PATH, "r") as f:
-    config = json.load(f)
-
-OWNER_ID = config["OWNER_ID"]
-OWNER_USERNAME = config["OWNER_USERNAME"]
-OWNER_NAME = config["OWNER_NAME"]
-BOT_NAME = config["BOT_NAME"]
-VERSION = config["VERSION"]
-BOT_TOKEN = config["BOT_TOKEN"]
-API_ID = config["API_ID"]
-API_HASH = config["API_HASH"]
-
-DB_PATH = "database.db"
+# Folder logs
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
+DB_PATH = "database.db"
 
-print(f"🚀 {BOT_NAME} v{VERSION} Aktif!\n👑 Owner: {OWNER_NAME} (@{OWNER_USERNAME})")
-
-# ================= DATABASE =================
+# ===== DATABASE INIT =====
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY,
-        active_until TEXT
-    )""")
-    c.execute("""CREATE TABLE IF NOT EXISTS bots (
-        user_id INTEGER,
-        token TEXT,
-        partner_link TEXT,
-        last_tag_date TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(user_id)
+    c.execute("""CREATE TABLE IF NOT EXISTS partners (
+        chat_id TEXT PRIMARY KEY,
+        is_partner INTEGER DEFAULT 0,
+        last_tag_date TEXT
     )""")
     conn.commit()
     conn.close()
 
-# ================= LOG =================
+# ===== LOG =====
 def log_action(text):
     today = datetime.now().strftime("%Y-%m-%d")
     log_file = os.path.join(LOG_DIR, f"log_{today}.txt")
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {text}\n")
 
-# ================= BACKUP DATABASE =================
-def backup_database():
-    today = datetime.now().strftime("%Y%m%d")
-    backup_file = os.path.join(LOG_DIR, f"backup_{today}")
-    shutil.make_archive(backup_file, 'zip', '.', 'database.db')
-    log_action("💾 Backup database otomatis.")
-
-# ================= RESET TAGALL HARIAN =================
-def reset_daily_tag_limit():
+# ===== RESET HARIAN =====
+def reset_daily():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("UPDATE bots SET last_tag_date=NULL")
+    c.execute("UPDATE partners SET last_tag_date=NULL")
     conn.commit()
     conn.close()
-    log_action("♻️ Limit tagall harian direset.")
+    log_action("♻️ Reset limit tagall harian.")
 
-# ================= CEK USER PREMIUM =================
-async def check_expiring_users(app):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT user_id, active_until FROM users")
-    users = c.fetchall()
-    conn.close()
-    for uid, exp_date in users:
-        if not exp_date: continue
-        exp_date = datetime.strptime(exp_date, "%Y-%m-%d")
-        days_left = (exp_date - datetime.now()).days
-        if days_left == 2:
-            try:
-                await app.bot.send_message(
-                    OWNER_ID,
-                    f"⚠️ User `{uid}` masa aktif habis dalam 2 hari.",
-                    parse_mode="Markdown"
-                )
-            except: pass
-
-# ================= START =================
+# ===== START =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
-    # Owner selalu aktif
-    if user_id == OWNER_ID:
-        active_until = "2099-12-31"
-    else:
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
-        user = c.fetchone()
-        conn.close()
-        if not user or datetime.strptime(user[0], "%Y-%m-%d") < datetime.now():
-            await update.message.reply_text("❌ Kamu belum punya akses premium.\nHubungi admin untuk /addprem.")
-            return
-
     keyboard = [
-        [InlineKeyboardButton("🔗 Set Link Partner", callback_data="set_partner")],
-        [InlineKeyboardButton("🤖 Set Bot Token", callback_data="set_token")],
-        [InlineKeyboardButton("🕓 Manual TagAll", callback_data="manual_tagall")]
+        [InlineKeyboardButton("🔗 Set Partner List", callback_data="set_partner")],
+        [InlineKeyboardButton("🤖 Manual TagAll", callback_data="manual_tagall")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "👋 Selamat datang di *Auto TagAll Premium Bot v2.0*\n\nPilih menu:",
-        reply_markup=reply_markup, parse_mode="Markdown"
-    )
+    await update.message.reply_text(f"👋 Selamat datang di *{BOT_NAME} v{VERSION}*\nOwner: {OWNER_NAME} (@{OWNER_USERNAME})", reply_markup=reply_markup, parse_mode="Markdown")
 
-# ================= CALLBACK & MANUAL TAGALL =================
+# ===== CALLBACK BUTTON =====
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    user_id = query.from_user.id
-
-    # cek premium
-    if user_id != OWNER_ID:
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
-        user = c.fetchone()
-        conn.close()
-        if not user or datetime.strptime(user[0], "%Y-%m-%d") < datetime.now():
-            return await query.edit_message_text("❌ Masa aktif kamu sudah habis.")
-
     if query.data == "set_partner":
-        await query.edit_message_text("Kirim link grup partner kamu:")
-        context.user_data["waiting_for"] = "partner"
-    elif query.data == "set_token":
-        await query.edit_message_text("Kirim token bot kamu:")
-        context.user_data["waiting_for"] = "token"
+        await query.edit_message_text("Kirim list chat_id/grup partner (satu per baris):")
+        context.user_data["waiting_for"] = "partner_list"
     elif query.data == "manual_tagall":
         keyboard = [
             [InlineKeyboardButton("3m", callback_data="durasi_3"),
-             InlineKeyboardButton("5m", callback_data="durasi_5"),
-             InlineKeyboardButton("20m", callback_data="durasi_20")],
-            [InlineKeyboardButton("40m", callback_data="durasi_40"),
-             InlineKeyboardButton("90m", callback_data="durasi_90"),
-             InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
+             InlineKeyboardButton("5m", callback_data="durasi_5")],
+            [InlineKeyboardButton("20m", callback_data="durasi_20"),
+             InlineKeyboardButton("30m", callback_data="durasi_30")],
+            [InlineKeyboardButton("60m", callback_data="durasi_60"),
+             InlineKeyboardButton("90m", callback_data="durasi_90")],
+            [InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
         ]
-        await query.edit_message_text("Pilih
+        await query.edit_message_text("Pilih durasi TagAll manual:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def durasi_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    durasi = query.data.replace("durasi_", "")
+    await query.edit_message_text(f"⏱️ TagAll berjalan {durasi} menit otomatis.")
+    log_action(f"Manual TagAll {durasi} menit dijalankan oleh {query.from_user.id}")
+
+# ===== PESAN =====
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    user_id = update.effective_user.id
+    if context.user_data.get("waiting_for") == "partner_list":
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        lines = text.splitlines()
+        for chat_id in lines:
+            c.execute("INSERT OR REPLACE INTO partners(chat_id,is_partner,last_tag_date) VALUES(?,?,?)", (chat_id,1,None))
+            log_action(f"Partner ditambahkan: {chat_id} oleh {user_id}")
+        conn.commit()
+        conn.close()
+        await update.message.reply_text(f"✅ Partner list berhasil disimpan ({len(lines)} grup).")
+        context.user_data["waiting_for"] = None
+    elif "/jalan" in text.lower() or text.lower() in ["tagall","pemerintah"]:
+        keyboard = [
+            [InlineKeyboardButton("3m", callback_data="durasi_3"),
+             InlineKeyboardButton("5m", callback_data="durasi_5")],
+            [InlineKeyboardButton("20m", callback_data="durasi_20"),
+             InlineKeyboardButton("30m", callback_data="durasi_30")],
+            [InlineKeyboardButton("60m", callback_data="durasi_60"),
+             InlineKeyboardButton("90m", callback_data="durasi_90")],
+            [InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
+        ]
+        await update.message.reply_text("Pilih durasi TagAll manual:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+# ===== RUN BOT =====
+if __name__ == "__main__":
+    init_db()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_callback, pattern="^(set_|manual)"))
+    app.add_handler(CallbackQueryHandler(durasi_callback, pattern="^durasi_"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(reset_daily, "cron", hour=0, minute=0)  # Reset harian
+    scheduler.start()
+
+    log_action("🚀 Bot dimulai...")
+    print(f"🤖 {BOT_NAME} v{VERSION} aktif.")
+    app.run_polling()
