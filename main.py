@@ -1,7 +1,4 @@
-import json
-import os
-import sqlite3
-import shutil
+import json, os, sqlite3, shutil
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -31,10 +28,7 @@ DB_PATH = "database.db"
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
-print(f"""
-🚀 {BOT_NAME} v{VERSION} Aktif!
-👑 Owner: {OWNER_NAME} (@{OWNER_USERNAME})
-""")
+print(f"🚀 {BOT_NAME} v{VERSION} Aktif!\n👑 Owner: {OWNER_NAME} (@{OWNER_USERNAME})")
 
 # ================= DATABASE =================
 def init_db():
@@ -85,8 +79,7 @@ async def check_expiring_users(app):
     users = c.fetchall()
     conn.close()
     for uid, exp_date in users:
-        if not exp_date:
-            continue
+        if not exp_date: continue
         exp_date = datetime.strptime(exp_date, "%Y-%m-%d")
         days_left = (exp_date - datetime.now()).days
         if days_left == 2:
@@ -96,8 +89,7 @@ async def check_expiring_users(app):
                     f"⚠️ User `{uid}` masa aktif habis dalam 2 hari.",
                     parse_mode="Markdown"
                 )
-            except:
-                pass
+            except: pass
 
 # ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -131,11 +123,97 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup, parse_mode="Markdown"
     )
 
+# ================= CALLBACK & MANUAL TAGALL =================
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+
+    # cek premium
+    if user_id != OWNER_ID:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
+        user = c.fetchone()
+        conn.close()
+        if not user or datetime.strptime(user[0], "%Y-%m-%d") < datetime.now():
+            return await query.edit_message_text("❌ Masa aktif kamu sudah habis.")
+
+    if query.data == "set_partner":
+        await query.edit_message_text("Kirim link grup partner kamu:")
+        context.user_data["waiting_for"] = "partner"
+    elif query.data == "set_token":
+        await query.edit_message_text("Kirim token bot kamu:")
+        context.user_data["waiting_for"] = "token"
+    elif query.data == "manual_tagall":
+        keyboard = [
+            [InlineKeyboardButton("3m", callback_data="durasi_3"),
+             InlineKeyboardButton("5m", callback_data="durasi_5"),
+             InlineKeyboardButton("20m", callback_data="durasi_20")],
+            [InlineKeyboardButton("40m", callback_data="durasi_40"),
+             InlineKeyboardButton("90m", callback_data="durasi_90"),
+             InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
+        ]
+        await query.edit_message_text("Pilih durasi TagAll:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def durasi_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    durasi = query.data.replace("durasi_", "")
+    await query.edit_message_text(f"⏱️ Durasi TagAll: {durasi} menit.\nTagAll berjalan otomatis...")
+    log_action(f"User {query.from_user.id} mulai tagall manual ({durasi} menit)")
+
+# ================= PESAN DARI USER =================
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
+
+    if context.user_data.get("waiting_for") == "partner":
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT OR REPLACE INTO bots (user_id, partner_link, last_tag_date, token)
+            VALUES (?, ?, ?, COALESCE((SELECT token FROM bots WHERE user_id=?), NULL))
+        """, (user_id, text, None, user_id))
+        conn.commit()
+        conn.close()
+        await update.message.reply_text("✅ Link partner berhasil disimpan.")
+        context.user_data["waiting_for"] = None
+        log_action(f"User {user_id} set partner: {text}")
+
+    elif context.user_data.get("waiting_for") == "token":
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT OR REPLACE INTO bots (user_id, token, last_tag_date, partner_link)
+            VALUES (?, ?, ?, COALESCE((SELECT partner_link FROM bots WHERE user_id=?), NULL))
+        """, (user_id, text, None, user_id))
+        conn.commit()
+        conn.close()
+        await update.message.reply_text("✅ Token bot berhasil disimpan.")
+        context.user_data["waiting_for"] = None
+        log_action(f"User {user_id} set token bot.")
+
+    elif text.lower() in ["pemerintah", "/tagall"]:
+        keyboard = [
+            [InlineKeyboardButton("3m", callback_data="durasi_3"),
+             InlineKeyboardButton("5m", callback_data="durasi_5"),
+             InlineKeyboardButton("20m", callback_data="durasi_20")],
+            [InlineKeyboardButton("40m", callback_data="durasi_40"),
+             InlineKeyboardButton("90m", callback_data="durasi_90"),
+             InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
+        ]
+        await update.message.reply_text("Pilih durasi manual TagAll:", reply_markup=InlineKeyboardMarkup(keyboard))
+
 # ================= JALANKAN BOT =================
 if __name__ == "__main__":
     init_db()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_callback, pattern="^(set_|manual)"))
+    app.add_handler(CallbackQueryHandler(durasi_callback, pattern="^durasi_"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     scheduler = BackgroundScheduler()
     scheduler.add_job(backup_database, "cron", hour=0, minute=5)
@@ -145,7 +223,4 @@ if __name__ == "__main__":
 
     log_action("🚀 Bot dimulai...")
     print("🤖 Auto TagAll Premium v2.0 aktif.")
-
-    # Bot jalan 24 jam
     app.run_polling()
-
