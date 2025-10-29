@@ -13,5 +13,5 @@ API_ID = "25228455"
 API_HASH = "a4b300359ac029aafe51855ec85b40b1"  
 
 DB_PATH = "database.db"
-LOG_DIR = "logs"
+LOGS_CHAT_ID = -1003282574590 
 
