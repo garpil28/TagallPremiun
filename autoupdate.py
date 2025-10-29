@@ -6,7 +6,7 @@ from datetime import datetime
 from config import OWNER_ID, BOT_NAME
 
 # ===== CONFIG REPO =====
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/USERNAME/REPO/main/main.py"  # Ganti sesuai repo kamu
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/https://github.com/garpil28/TagallPremiun/main/main.py"
 LOCAL_FILE = "main.py"
 CHECK_INTERVAL = 300  # 300 detik = 5 menit
 
