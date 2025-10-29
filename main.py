@@ -209,6 +209,21 @@ def main():
     app.add_handler(CallbackQueryHandler(button_callback, pattern="^durasi_"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, detect_link))
 
+    from telegram.error import TelegramError
+
+async def error_handler(update, context):
+    try:
+        raise context.error
+    except TelegramError as e:
+        log_action(f"⚠️ Telegram Error: {e}")
+        await context.bot.send_message(LOGS_CHAT_ID, f"⚠️ *Error:* {e}", parse_mode="Markdown")
+    except Exception as e:
+        log_action(f"⚠️ Unexpected Error: {e}")
+        await context.bot.send_message(LOGS_CHAT_ID, f"⚠️ *Unexpected Error:* {e}", parse_mode="Markdown")
+
+app.add_error_handler(error_handler)
+
+
     print(f"🤖 {BOT_NAME} v{VERSION} aktif.")
     log_action("Bot dijalankan.")
     app.run_polling()
