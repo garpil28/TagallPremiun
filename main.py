@@ -4,7 +4,10 @@ import sqlite3
 import shutil
 from datetime import datetime, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    MessageHandler, ContextTypes, filters
+)
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # ================= CONFIG =================
@@ -33,7 +36,7 @@ print(f"""
 👑 Owner: {OWNER_NAME} (@{OWNER_USERNAME})
 """)
 
-# ========= DATABASE =========
+# ================= DATABASE =================
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -51,21 +54,21 @@ def init_db():
     conn.commit()
     conn.close()
 
-# ========= LOG =========
+# ================= LOG =================
 def log_action(text):
     today = datetime.now().strftime("%Y-%m-%d")
     log_file = os.path.join(LOG_DIR, f"log_{today}.txt")
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(f"[{datetime.now().strftime('%H:%M:%S')}] {text}\n")
 
-# ========= BACKUP =========
+# ================= BACKUP DATABASE =================
 def backup_database():
     today = datetime.now().strftime("%Y%m%d")
     backup_file = os.path.join(LOG_DIR, f"backup_{today}")
     shutil.make_archive(backup_file, 'zip', '.', 'database.db')
     log_action("💾 Backup database otomatis.")
 
-# ========= RESET TAGALL HARIAN =========
+# ================= RESET TAGALL HARIAN =================
 def reset_daily_tag_limit():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -74,7 +77,7 @@ def reset_daily_tag_limit():
     conn.close()
     log_action("♻️ Limit tagall harian direset.")
 
-# ========= CEK USER PREMIUM =========
+# ================= CEK USER PREMIUM =================
 async def check_expiring_users(app):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -96,21 +99,27 @@ async def check_expiring_users(app):
             except:
                 pass
 
-# ========= START =========
+# ================= START =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
-    user = c.fetchone()
-    conn.close()
-    if not user:
-        await update.message.reply_text("❌ Kamu belum punya akses premium.\nHubungi admin untuk /addprem.")
-        return
-    active_until = datetime.strptime(user[0], "%Y-%m-%d")
-    if active_until < datetime.now():
-        await update.message.reply_text("⛔ Masa aktif kamu sudah habis. Hubungi admin untuk perpanjang.")
-        return
+
+    # Owner selalu aktif
+    if user_id == OWNER_ID:
+        active_until = "2099-12-31"
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
+        user = c.fetchone()
+        conn.close()
+        if not user:
+            await update.message.reply_text("❌ Kamu belum punya akses premium.\nHubungi admin untuk /addprem.")
+            return
+        active_until = datetime.strptime(user[0], "%Y-%m-%d")
+        if active_until < datetime.now():
+            await update.message.reply_text("⛔ Masa aktif kamu sudah habis. Hubungi admin untuk perpanjang.")
+            return
+
     keyboard = [
         [InlineKeyboardButton("🔗 Set Link Partner", callback_data="set_partner")],
         [InlineKeyboardButton("🤖 Set Bot Token", callback_data="set_token")],
@@ -122,7 +131,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup, parse_mode="Markdown"
     )
 
-# ========= JALANKAN =========
+# ================= JALANKAN BOT =================
 if __name__ == "__main__":
     init_db()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -136,4 +145,7 @@ if __name__ == "__main__":
 
     log_action("🚀 Bot dimulai...")
     print("🤖 Auto TagAll Premium v2.0 aktif.")
+
+    # Bot jalan 24 jam
     app.run_polling()
+
