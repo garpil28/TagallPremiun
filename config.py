@@ -1,7 +1,10 @@
-# === CONFIG.PY ===
-# Informasi umum tentang bot dan pemilik
-
-OWNER_USERNAME = "garfil28"          
-OWNER_NAME = "Garfield Store"       
-BOT_NAME = "Auto TagAll Premium"     
-VERSION = "2.0"                      
+# ===== CONFIG BOT =====
+OWNER_ID = 6954401932
+OWNER_USERNAME = "kopi567"
+OWNER_NAME = "Garfield Store"
+BOT_NAME = "Auto TagAll Premium"
+VERSION = "3.0"
+BOT_TOKEN = "MASUKKAN_BOT_TOKEN_BOTFATHER"
+API_ID = "MASUKKAN_API_ID"
+API_HASH = "MASUKKAN_API_HASH"
+            
