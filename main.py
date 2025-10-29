@@ -104,12 +104,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c.execute("SELECT active_until FROM users WHERE user_id=?", (user_id,))
         user = c.fetchone()
         conn.close()
-        if not user:
+        if not user or datetime.strptime(user[0], "%Y-%m-%d") < datetime.now():
             await update.message.reply_text("❌ Kamu belum punya akses premium.\nHubungi admin untuk /addprem.")
-            return
-        active_until = datetime.strptime(user[0], "%Y-%m-%d")
-        if active_until < datetime.now():
-            await update.message.reply_text("⛔ Masa aktif kamu sudah habis. Hubungi admin untuk perpanjang.")
             return
 
     keyboard = [
@@ -154,73 +150,4 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              InlineKeyboardButton("90m", callback_data="durasi_90"),
              InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
         ]
-        await query.edit_message_text("Pilih durasi TagAll:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-async def durasi_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    durasi = query.data.replace("durasi_", "")
-    await query.edit_message_text(f"⏱️ Durasi TagAll: {durasi} menit.\nTagAll berjalan otomatis...")
-    log_action(f"User {query.from_user.id} mulai tagall manual ({durasi} menit)")
-
-# ================= PESAN DARI USER =================
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    text = update.message.text
-
-    if context.user_data.get("waiting_for") == "partner":
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("""
-            INSERT OR REPLACE INTO bots (user_id, partner_link, last_tag_date, token)
-            VALUES (?, ?, ?, COALESCE((SELECT token FROM bots WHERE user_id=?), NULL))
-        """, (user_id, text, None, user_id))
-        conn.commit()
-        conn.close()
-        await update.message.reply_text("✅ Link partner berhasil disimpan.")
-        context.user_data["waiting_for"] = None
-        log_action(f"User {user_id} set partner: {text}")
-
-    elif context.user_data.get("waiting_for") == "token":
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("""
-            INSERT OR REPLACE INTO bots (user_id, token, last_tag_date, partner_link)
-            VALUES (?, ?, ?, COALESCE((SELECT partner_link FROM bots WHERE user_id=?), NULL))
-        """, (user_id, text, None, user_id))
-        conn.commit()
-        conn.close()
-        await update.message.reply_text("✅ Token bot berhasil disimpan.")
-        context.user_data["waiting_for"] = None
-        log_action(f"User {user_id} set token bot.")
-
-    elif text.lower() in ["pemerintah", "/tagall"]:
-        keyboard = [
-            [InlineKeyboardButton("3m", callback_data="durasi_3"),
-             InlineKeyboardButton("5m", callback_data="durasi_5"),
-             InlineKeyboardButton("20m", callback_data="durasi_20")],
-            [InlineKeyboardButton("40m", callback_data="durasi_40"),
-             InlineKeyboardButton("90m", callback_data="durasi_90"),
-             InlineKeyboardButton("♾️ Unlimited", callback_data="durasi_unlimit")]
-        ]
-        await update.message.reply_text("Pilih durasi manual TagAll:", reply_markup=InlineKeyboardMarkup(keyboard))
-
-# ================= JALANKAN BOT =================
-if __name__ == "__main__":
-    init_db()
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_callback, pattern="^(set_|manual)"))
-    app.add_handler(CallbackQueryHandler(durasi_callback, pattern="^durasi_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(backup_database, "cron", hour=0, minute=5)
-    scheduler.add_job(reset_daily_tag_limit, "cron", hour=0, minute=0)
-    scheduler.add_job(lambda: check_expiring_users(app), "interval", hours=12)
-    scheduler.start()
-
-    log_action("🚀 Bot dimulai...")
-    print("🤖 Auto TagAll Premium v2.0 aktif.")
-    app.run_polling()
+        await query.edit_message_text("Pilih
