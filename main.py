@@ -11,7 +11,10 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters,
 )
-from config import OWNER_ID, OWNER_USERNAME, OWNER_NAME, BOT_NAME, VERSION, BOT_TOKEN, LOGS_CHAT_ID
+from telegram.error import TelegramError
+from config import OWNER_IDS, BOT_NAME, VERSION, BOT_TOKEN, LOGS_CHAT_ID, OWNER_NAME, OWNER_USERNAME
+
+OWNER_ID = OWNER_IDS[0]
 
 # ===== FOLDER LOGS =====
 LOG_DIR = "logs"
@@ -70,7 +73,6 @@ async def tagall(context, sender_name, duration_min=5, mode="auto"):
         log_action("❌ Tidak ada partner terdaftar.")
         return
 
-    start_time = datetime.now()
     log_action(f"🚀 TagAll ({mode}) dimulai oleh {sender_name} selama {duration_min} menit.")
 
     start_msg = (
@@ -92,7 +94,6 @@ async def tagall(context, sender_name, duration_min=5, mode="auto"):
         except Exception as e:
             log_action(f"⚠️ Gagal kirim ke {pid}: {e}")
 
-    # Menjalankan tag selama durasi tertentu
     for i in range(duration_min):
         await asyncio.sleep(60)
         for pid in partners:
@@ -101,7 +102,6 @@ async def tagall(context, sender_name, duration_min=5, mode="auto"):
             except:
                 pass
 
-    # Berhenti otomatis
     for pid in partners:
         try:
             await context.bot.send_message(int(pid), f"✅ TagAll berhenti otomatis setelah {duration_min} menit.")
@@ -125,7 +125,7 @@ async def tagall(context, sender_name, duration_min=5, mode="auto"):
     if os.path.exists(today_log):
         await context.bot.send_document(LOGS_CHAT_ID, document=open(today_log, "rb"))
 
-# ===== BUTTON HANDLER UNTUK /JALAN =====
+# ===== BUTTON HANDLER =====
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -134,7 +134,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(f"▶️ TagAll dimulai selama {duration} menit oleh {sender_name}...")
     await tagall(context, sender_name, duration_min=duration, mode="manual")
 
-# ===== PERINTAH =====
+# ===== COMMANDS =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"🤖 *{BOT_NAME} v{VERSION}*\n"
@@ -179,7 +179,6 @@ async def list_partner_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("📋 List Partner:\n" + "\n".join(partners))
 
-# ===== TAGALL MANUAL DI GRUP =====
 async def jalan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("3m", callback_data="durasi_3"),
@@ -190,27 +189,12 @@ async def jalan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text("Pilih durasi TagAll:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ===== DETEKSI OTOMATIS DARI BOT =====
 async def detect_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "t.me/" in update.message.text.lower():
         sender_name = update.effective_user.first_name
         await tagall(context, sender_name, mode="auto")
 
-# ===== MAIN =====
-def main():
-    init_db()
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("addpartner", add_partner_cmd))
-    app.add_handler(CommandHandler("delpartner", del_partner_cmd))
-    app.add_handler(CommandHandler("listpartner", list_partner_cmd))
-    app.add_handler(CommandHandler("jalan", jalan_cmd))
-    app.add_handler(CallbackQueryHandler(button_callback, pattern="^durasi_"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, detect_link))
-
-    from telegram.error import TelegramError
-
+# ===== ERROR HANDLER =====
 async def error_handler(update, context):
     try:
         raise context.error
@@ -221,19 +205,11 @@ async def error_handler(update, context):
         log_action(f"⚠️ Unexpected Error: {e}")
         await context.bot.send_message(LOGS_CHAT_ID, f"⚠️ *Unexpected Error:* {e}", parse_mode="Markdown")
 
-app.add_error_handler(error_handler)
+# ===== MAIN =====
+def main():
+    init_db()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-
-    print(f"🤖 {BOT_NAME} v{VERSION} aktif.")
-    log_action("Bot dijalankan.")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main() 
-    
-# ===== AUTO UPDATER =====
-import threading
-from autoupdate import auto_update_loop
-
-threading.Thread(target=auto_update_loop, daemon=True).start()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("add
 
