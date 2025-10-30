@@ -4,7 +4,7 @@
 
 # ===== BOT CONFIG =====
 BOT_NAME = "AutoTagAll Premium"
-BOT_TOKEN = "YOUR_NEW_TOKEN_HERE"  # ← ganti pakai token dari @BotFather
+BOT_TOKEN = "7665260692:AAFjY00PFEQKWslWifvlqFoQCEIiZb543j8"
 
 # ===== OWNER CONFIG =====
 OWNER_NAME = "kopi567"
