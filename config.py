@@ -1,17 +1,20 @@
-# =========================
-# CONFIG BOT AUTOTAGALL
-# =========================
+# ===== BOT CONFIG =====
+BOT_NAME        = "AutoTagAll Premium"
+VERSION         = "v2.0"
+BOT_TOKEN       = "8487458549:AAFD4xmraiWBo7OFtlwx4kdPHPtD9A0g9E"
 
-OWNER_ID = 6954401932
-OWNER_USERNAME = "kopi567"
-OWNER_NAME = "Garfield Store"
-BOT_NAME = "AutoTagAll Premium"
-VERSION = "2.0"
+# ===== OWNER CONFIG =====
+OWNER_NAME      = "kopi567"
+OWNER_USERNAME  = "kopi567"
+OWNER_IDS       = [6954401932, 5727852338]
 
-BOT_TOKEN = "8487458549:AAFD4xmraiWBo7OFtlwx4kdPHPtD9A0g9jE"  
-API_ID = "25228455"    
-API_HASH = "a4b300359ac029aafe51855ec85b40b1"  
+# ===== LOG CONFIG =====
+LOG_GROUP_ID    = -1003282574590
+LOG_FILE_NAME   = "BotTagallGarfieldLogs.txt"
 
-DB_PATH = "database.db"
-LOGS_CHAT_ID = -1003282574590 
+# ===== GEMINI / API =====
+GEMINI_API_KEY  = ""
+SUPPORT_GROUP   = "https://t.me/garfieldoffc"
+UPDATES_CHANNEL = "storegarf"
+BANNER_IMG_URL  = "https://files.catbox.moe/vcdo1g.jpg"
 
