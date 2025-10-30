@@ -1,4 +1,3 @@
-# main.py
 # AutoTagAll Premium - single-file controller (async python-telegram-bot v20)
 # NOTE: This implementation stores user data locally in data/users.json
 #       and logs auto-tagall events to LOGS_CHAT_ID (config.py).
