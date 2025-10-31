@@ -1,5 +1,3 @@
-ᴏғғ, [31/10/2025 20:23]
-# manual_tagall.py — manual tagall handler (durasi pilihan)
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
