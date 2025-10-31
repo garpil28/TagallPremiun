@@ -1,73 +1,56 @@
 import asyncio
 from pyrogram import Client, filters
-from config import CBOT, COWNER
-from pymongo import MongoClient
+from config import *
 
-bot = Client(
-    "GarfieldAuto",
-    api_id=CBOT.API_ID,
-    api_hash=CBOT.API_HASH,
-    bot_token=CBOT.BOT_TOKEN,
-)
+app = Client("autotagall_manual", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-mongo = MongoClient(CBOT.DATABASE_URL)
-db = mongo["garfield_bot"]
-premium_users = db["premium_users"]
-partners = db["partners"]
+DURASI = {
+    "3": 180,
+    "5": 300,
+    "10": 600,
+    "20": 1200,
+    "30": 1800,
+    "60": 3600,
+    "90": 5400,
+    "120": 7200,
+    "unlimited": None
+}
 
-# Tambah premium user
-@bot.on_message(filters.command("addprem") & filters.user(COWNER.OWNER_IDS))
-async def add_premium(_, message):
-    if len(message.command) < 2:
-        return await message.reply_text("Gunakan: /addprem <user_id>")
-    uid = int(message.command[1])
-    premium_users.update_one({"_id": uid}, {"$set": {"active": True}}, upsert=True)
-    await message.reply_text(f"✅ User {uid} sekarang premium!")
-
-# Hapus premium user
-@bot.on_message(filters.command("delprem") & filters.user(COWNER.OWNER_IDS))
-async def del_premium(_, message):
-    if len(message.command) < 2:
-        return await message.reply_text("Gunakan: /delprem <user_id>")
-    uid = int(message.command[1])
-    premium_users.delete_one({"_id": uid})
-    await message.reply_text(f"❌ User {uid} sudah dihapus dari premium.")
-
-# Start handler untuk semua user
-@bot.on_message(filters.command("start"))
-async def start_handler(_, message):
-    uid = message.from_user.id
-    is_premium = premium_users.find_one({"_id": uid})
-    if not is_premium:
-        return await message.reply_text("👋 Halo! Kamu belum premium.\nHubungi owner untuk akses TagAll Premium.")
-    await message.reply_text(
-        "🤖 Selamat datang di Auto TagAll!\n"
-        "Kirim kata-kata yang ingin kamu tagall ke grup kamu.\n"
-        "Bot akan berjalan selama 5 menit dan menandai semua anggota!"
-    )
-
-# Terima pesan dari partner dan mulai tagall
-@bot.on_message(filters.text & ~filters.command(["start", "addprem", "delprem"]))
-async def tagall_handler(client, message):
-    uid = message.from_user.id
-    is_premium = premium_users.find_one({"_id": uid})
-    if not is_premium:
+@app.on_message(filters.command("tagall") & filters.group)
+async def manual_tagall(_, message):
+    if not message.from_user:
         return
-    text = message.text
-    await message.reply_text("🔄 Proses TagAll sedang berjalan selama 5 menit...")
+    member = message.from_user
+    if not (member.id in OWNER_IDS or member.status in ["creator", "administrator"]):
+        return await message.reply("❌ Hanya admin yang bisa menjalankan manual tagall.")
 
-    members = [m async for m in client.get_chat_members(message.chat.id)]
-    count = 0
-    for m in members:
-        if not m.user or m.user.is_bot:
-            continue
-        try:
-            await message.reply_text(f"{text} [{m.user.first_name}](tg://user?id={m.user.id})", disable_web_page_preview=True)
-            count += 1
-            await asyncio.sleep(2)
-        except:
-            continue
+    args = message.text.split()
+    if len(args) < 2:
+        return await message.reply("Gunakan format:\n/tagall <durasi>\nContoh: /tagall 5 untuk 5 menit.")
 
-    await message.reply_text(f"✅ TagAll selesai ({count} anggota).")
-    await message.reply_document(docume
-    main()
+    durasi = args[1]
+    if durasi not in DURASI:
+        return await message.reply("Durasi tidak valid. Pilih antara 3, 5, 10, 20, 30, 60, 90, 120, atau unlimited.")
+
+    waktu = DURASI[durasi]
+    await message.reply(f"✅ Manual Tagall dimulai ({durasi} menit)...")
+
+    members = []
+    async for m in app.get_chat_members(message.chat.id):
+        if not m.user.is_bot:
+            members.append(m.user.mention)
+
+    text = " ".join(members)
+    chunks = [text[i:i+3500] for i in range(0, len(text), 3500)]
+    for chunk in chunks:
+        await message.reply(chunk)
+        await asyncio.sleep(5)
+
+    if waktu:
+        await asyncio.sleep(waktu)
+        await message.reply("✅ Durasi tagall selesai.")
+    else:
+        await message.reply("♾️ Tagall unlimited aktif sampai bot dihentikan manual.")
+
+print("🚀 Manual TagAll siap dijalankan...")
+app.run()
