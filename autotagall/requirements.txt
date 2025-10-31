@@ -1,3 +1,7 @@
 pyrogram==2.0.106
 tgcrypto
 asyncio
+telethon
+pymongo
+python-dontev
+pytz
