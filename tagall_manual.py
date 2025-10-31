@@ -1,4 +1,3 @@
-# manual_tagall.py — manual tagall handler (durasi pilihan)
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
