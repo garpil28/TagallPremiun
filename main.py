@@ -112,7 +112,6 @@ async def add_premium(_, message):
 
 @app.on_message(filters.command("delprem") & filters.user(OWNER_IDS))
 
-ᴏғғ, [31/10/2025 23:35]
 async def del_premium(_, message):
     if len(message.command) < 2:
         return await message.reply_text("Gunakan: /delprem <user_id>")
