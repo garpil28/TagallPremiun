@@ -1,7 +1,7 @@
-import asyncio
 from pyrogram import Client, filters
 from pymongo import MongoClient
 from config import *
+import asyncio
 
 app = Client(
     "GarfieldTagAllBot",
@@ -10,7 +10,7 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-mongo = MongoClient(DATABASE_URL)
+mongo = MongoClient(MONGO_URL)
 db = mongo["garfield_tagall"]
 premium_users = db["premium_users"]
 
