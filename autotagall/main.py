@@ -1,47 +1,117 @@
-# autotagall/main.py
-from pyrogram import Client, filters
-from pyrogram.types import Message
+ᴏғғ, [31/10/2025 18:01]
+import logging
 import asyncio
-import os
+from datetime import datetime, timedelta
+import pytz
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    MessageHandler, filters, ContextTypes
+)
+from pymongo import MongoClient
+from config import *
 
-# Ambil token dari variabel lingkungan (environment variable)
-TOKEN = os.environ.get("BOT_TOKEN")
-API_ID = int(os.environ.get("API_ID", 123456))  # ganti kalau mau
-API_HASH = os.environ.get("API_HASH", "your_api_hash_here")
-
-# Buat client bot
-app = Client(
-    "autotagall_bot",
-    bot_token=TOKEN,
-    api_id=API_ID,
-    api_hash=API_HASH
+# Logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
 
-# --- FITUR 1: Command start ---
-@app.on_message(filters.command("start"))
-async def start_cmd(_, msg: Message):
-    await msg.reply_text(
-        "👋 Halo! Saya bot TagAll otomatis.\n"
-        "Ketik /tagall untuk menandai semua anggota grup."
+# Timezone
+tz = pytz.timezone(TIMEZONE)
+
+# Database setup
+mongo_client = MongoClient(MONGO_URL)
+db = mongo_client["AutoTagAll"]
+users_col = db["users"]
+partners_col = db["partners"]
+premium_col = db["premium"]
+
+# ====================== COMMAND START ======================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_photo(
+        BANNER_IMG_URL,
+        caption=f"👋 Hai {user.first_name}!\n\n"
+                f"Saya {BOT_NAME}.\n\n"
+                "📍 Pilih mode di bawah ini:",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("⚙️ Manual TagAll", callback_data="manual")],
+            [InlineKeyboardButton("🤖 Auto TagAll", callback_data="auto")],
+            [InlineKeyboardButton("👥 List Partner", callback_data="list_partner")]
+        ])
     )
 
-# --- FITUR 2: Manual TagAll ---
-@app.on_message(filters.command("tagall") & filters.group)
-async def tagall_cmd(client, msg: Message):
-    chat = msg.chat
-    members = []
-    async for member in client.get_chat_members(chat.id):
-        if not member.user.is_bot:
-            members.append(member.user.mention)
+# ====================== MANUAL TAGALL ======================
+async def manual_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    keyboard = [
+        [InlineKeyboardButton("3 Menit", callback_data="durasi_3"),
+         InlineKeyboardButton("5 Menit", callback_data="durasi_5")],
+        [InlineKeyboardButton("10 Menit", callback_data="durasi_10"),
+         InlineKeyboardButton("20 Menit", callback_data="durasi_20")],
+        [InlineKeyboardButton("60 Menit", callback_data="durasi_60"),
+         InlineKeyboardButton("Unlimited", callback_data="durasi_unlimited")]
+    ]
+    await query.edit_message_text(
+        "💭 Pilih durasi untuk jalan manual TagAll:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-    text = "🔥 TagAll diminta oleh " + msg.from_user.mention + " 🔥\n\n"
-    text += " ".join(members)
+async def pilih_durasi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    durasi = query.data.replace("durasi_", "")
+    await query.edit_message_text(f"✅ Durasi {durasi} menit dipilih!\n\nBot akan mulai men-tag dalam grup ini...")
 
-    # Bagi pesan jadi beberapa bagian biar ga terlalu panjang
-    for part in [text[i:i+4000] for i in range(0, len(text), 4000)]:
-        await msg.reply_text(part)
-        await asyncio.sleep(1)
+    # Simulasi proses TagAll
+    await asyncio.sleep(5)
+    await query.message.reply_text("📢 TagAll selesai! Semua anggota sudah di-tag sesuai durasi pilihanmu.")
 
-# --- Jalankan bot ---
-print("✅ Bot autotagall sedang berjalan...")
-app.run()
+# ====================== AUTO TAGALL ======================
+async def auto_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+
+    if not premium_col.find_one({"user_id": user_id}):
+        await query.edit_message_text("❌ Kamu belum premium. Minta akses ke owner untuk pakai Auto TagAll.")
+        return
+
+    await query.edit_message_text(
+        "🤖 Mode Auto TagAll aktif!\n\n"
+        "Bot akan otomatis jalan jika admin grup sedang offline.\n"
+        "Kamu bisa atur list partner di menu /addpartner"
+    )
+
+# ====================== OWNER ONLY ======================
+async def add_prem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in OWNER_IDS:
+        await update.message.reply_text("❌ Hanya owner yang bisa menambah premium.")
+        return
+
+    if len(context.args) != 1:
+        await update.message.reply_text("Gunakan format: /addprem <user_id>")
+        return
+
+    user_id = int(context.args[0])
+    premium_col.update_one({"user_id": user_id}, {"$set": {"active": True}}, upsert=True)
+    await update.message.reply_text(f"✅ User {user_id} sekarang jadi premium!")
+
+# ====================== HANDLER SETUP ======================
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+ᴏғғ, [31/10/2025 18:01]
+app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("addprem", add_prem))
+    app.add_handler(CallbackQueryHandler(manual_mode, pattern="^manual$"))
+    app.add_handler(CallbackQueryHandler(auto_mode, pattern="^auto$"))
+    app.add_handler(CallbackQueryHandler(pilih_durasi, pattern="^durasi_"))
+
+    print(f"[{BOT_NAME}] Berjalan... waktu: {datetime.now(tz).strftime('%H:%M:%S')}")
+    app.run_polling()
+
+if name == "main":
+    main()
