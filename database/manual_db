@@ -1,1 +1,10 @@
+# database/manual_db.py
+from pymongo import MongoClient
+from config import DATABASE_URL, DATABASE_NAME
 
+client = MongoClient(DATABASE_URL)
+db = client[DATABASE_NAME]
+
+# Collections for manual tagall sessions/logs
+manual_sessions_col = db["manual_sessions"]   # session records while manual tagall runs
+manual_logs_col = db["manual_logs"]           # finished manual run logs
