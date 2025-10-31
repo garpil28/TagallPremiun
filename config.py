@@ -5,6 +5,9 @@
 # ===== BOT CONFIG =====
 BOT_NAME = "AutoTagAll Premium"
 BOT_TOKEN = "7665260692:AAFjY00PFEQKWslWifvlqFoQCEIiZb543j8"
+MONGO_URL = mongodb+srv://kurniawansyahrifky_db_user:AShPfSCyrE7fryDh@cluster0.6isxnrc.mongodb.net/?appName=Cluster0
+API_HASH = a4b300359ac029aafe51855ec85b40b1
+API_ID = 25228455
 
 # ===== OWNER CONFIG =====
 OWNER_NAME = "kopi567"
