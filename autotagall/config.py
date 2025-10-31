@@ -1,10 +1,11 @@
-# =========================================================
-# 🧠 CONFIG FILE - AutoTagAll Premium
-# =========================================================
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ===== BOT CONFIG =====
 BOT_NAME = "AutoTagAll Premium"
-BOT_TOKEN = "7665260692:AAFjY00PFEQKWslWifvlqFoQCEIiZb543j8"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ===== OWNER CONFIG =====
 OWNER_NAME = "kopi567"
@@ -23,5 +24,22 @@ BANNER_IMG_URL = "https://files.catbox.moe/vcdo1g.jpg"
 # ===== TIMEZONE CONFIG =====
 TIMEZONE = "Asia/Jakarta"  # WIB (GMT+7)
 
-# ===== VERSION INFO =====
-BOT_VERSION = "v1.0.0"
+# ===== DATABASE CONFIG =====
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+)
+
+# ===== API CONFIG =====
+API_ID = int(os.getenv("API_ID", "20186947"))
+API_HASH = os.getenv("API_HASH", "033defc8a75d858d76870f65f947d130")
+
+# ===== EFFECTS ID (jangan ubah kecuali mau ubah efek stiker) =====
+EFFECT_IDS = {
+    "THUMB": 5107584321108051014,
+    "NOOB": 5104858069142078462,
+    "LOVE": 5159385139981059251,
+    "FIRE": 5104841245755180586,
+    "PARTY": 5046509860389126442,
+    "POOP": 5046589136895476101,
+}
