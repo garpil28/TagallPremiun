@@ -1,7 +1,6 @@
 from pyrogram import Client, idle
 from config import CBOT
 
-# Import semua fitur
 import manual_tagall
 import auto_tagall
 
