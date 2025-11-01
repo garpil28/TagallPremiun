@@ -11,15 +11,6 @@ PENDING_MENTIONS = {}
 SHUTDOWN_EVENT = asyncio.Event()
 SPAM_CHATS = []
 
-EFFECT_IDS = {
-    "THUMB": 5107584321108051014,
-    "NOOB": 5104858069142078462,
-    "LOVE": 5159385139981059251,
-    "FIRE": 5104841245755180586,
-    "PARTY": 5046509860389126442,
-    "POOP": 5046589136895476101,
-}
-
 BOT_NAME = os.getenv("BOT_NAME", "Garfield TagAllBot")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 API_ID = int(os.getenv("API_ID", "0"))
@@ -46,6 +37,6 @@ class COWNER:
     OWNER_USERNAME = OWNER_USERNAME
     OWNER_IDS = OWNER_IDS
 
-print(f"[✅] Config loaded successfully for bot: {BOT_NAME}")
+print(f"[✅] Config loaded for {BOT_NAME}")
 print(f"[🧠] Owner: {OWNER_NAME} ({OWNER_USERNAME})")
-print(f"[💾] MongoDB: Connected via {DATABASE_URL[:40]}...")
+print(f"[💾] MongoDB connected via {DATABASE_URL[:40]}...")
