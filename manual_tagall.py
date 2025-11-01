@@ -7,7 +7,6 @@ from pyrogram.enums import ChatMembersFilter
 from app import app
 from config import OWNER_IDS
 
-# small emoji list (optional)
 EMOJIS = ["🔥","😎","✅","👻","💥","⚡","🌟","🐱"]
 
 SPAM_CHATS = {}  # chat_id -> {"text":..., "reply": Message or None, "task": Task}
