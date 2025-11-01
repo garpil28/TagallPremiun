@@ -1,5 +1,3 @@
-ᴏғғ, [01/11/2025 21:54]
-# auto_tagall.py
 import asyncio
 from datetime import datetime, timezone, timedelta
 from pyrogram import filters
