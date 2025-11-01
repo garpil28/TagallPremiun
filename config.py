@@ -1,42 +1,45 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 
+# load .env biar semua data penting diambil otomatis
 load_dotenv()
 
-HELP_COMMANDS = {}
-ACTIVE_LIVECHATS = {}
-BROADCAST_STATUS = {}
-PENDING_MENTIONS = {}
-SHUTDOWN_EVENT = asyncio.Event()
-SPAM_CHATS = []
-
-BOT_NAME = os.getenv("BOT_NAME", "Garfield TagAllBot")
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-API_ID = int(os.getenv("API_ID", "0"))
+# 🔰 Data dasar bot
+API_ID = int(os.getenv("API_ID", 0))
 API_HASH = os.getenv("API_HASH", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_NAME = os.getenv("BOT_NAME", "GarfieldTagall")
+OWNER_IDS = [int(x) for x in os.getenv("OWNER_IDS", "").split()] if os.getenv("OWNER_IDS") else []
+OWNER_NAME = os.getenv("OWNER_NAME", "kopi567")
 
-OWNER_NAME = os.getenv("OWNER_NAME", "")
-OWNER_USERNAME = os.getenv("OWNER_USERNAME", "")
-OWNER_IDS = [int(x) for x in os.getenv("OWNER_IDS", "0").split()]
+# 🔰 Log & identitas
+LOG_GROUP_ID = int(os.getenv("LOG_GROUP_ID", 0))
+STORE_LINK = os.getenv("TAG_FOOTER_LINK", "https://t.me/storegarf")
 
-LOG_GROUP_ID = int(os.getenv("LOG_GROUP_ID", "-100"))
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-TIMEZONE = os.getenv("TIMEZONE", "Asia/Jakarta")
+# 🔰 Database
+MONGO_URL = os.getenv("MONGO_URL", "")
+REDIS_URL = os.getenv("REDIS_URL", "")
 
-class CBOT:
-    API_ID = API_ID
-    API_HASH = API_HASH
-    BOT_TOKEN = BOT_TOKEN
-    BOT_NAME = BOT_NAME
-    LOG_GROUP_ID = LOG_GROUP_ID
-    DATABASE_URL = DATABASE_URL
+# 🔰 Broadcast
+BROADCAST_DELAY = int(os.getenv("BROADCAST_DELAY", 2))
+BROADCAST_CHUNK = int(os.getenv("BROADCAST_CHUNK", 50))
 
-class COWNER:
-    OWNER_NAME = OWNER_NAME
-    OWNER_USERNAME = OWNER_USERNAME
-    OWNER_IDS = OWNER_IDS
+# 🔰 TagAll config
+TAG_BATCH_SIZE = int(os.getenv("TAG_BATCH_SIZE", 5))
+TAG_DELAY = int(os.getenv("TAG_DELAY", 5))
+TAG_INTERVAL = int(os.getenv("TAG_INTERVAL", 300))
 
-print(f"[✅] Config loaded for {BOT_NAME}")
-print(f"[🧠] Owner: {OWNER_NAME} ({OWNER_USERNAME})")
-print(f"[💾] MongoDB connected via {DATABASE_URL[:40]}...")
+# 🔰 Fitur AI & Auto Reply
+ENABLE_AUTOREPLY = os.getenv("ENABLE_AUTOREPLY", "True").lower() == "true"
+
+# 🔰 Fitur SangMata (deteksi ganti nama user)
+ENABLE_SANGMATA = os.getenv("ENABLE_SANGMATA", "True").lower() == "true"
+SANGMATA_LOG_ID = int(os.getenv("SANGMATA_LOG_ID", 0))
+
+# 🔰 Durasi Tagall (biar ga spam)
+MAX_PARTNER_DURATION = int(os.getenv("MAX_PARTNER_DURATION", 300))
+MAX_NONPARTNER_DURATION = int(os.getenv("MAX_NONPARTNER_DURATION", 120))
+
+# 🔰 Info versi
+VERSION = "GarfieldBot PRO MAX+"
+DEVELOPER = "kopi567"
