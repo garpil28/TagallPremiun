@@ -1,4 +1,5 @@
-pyrogram==2.0.106
+pyrogram==2.0.42
 TgCrypto
-pymongo
+pymongo==4.6.1
 python-dotenv
+motor==3.1.1
