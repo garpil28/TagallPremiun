@@ -12,7 +12,7 @@ app = Client(
 import manual_tagall   # Handlers manual tagall (buttons, cancel)
 import auto_tagall     # Auto/premium logic (autotag, setgroupid, partners, db)
 
-if name == "main":
+if __name__ == "__main__":
     print(f"[🚀] Starting {BOT_NAME} ...")
     app.start()
     print("[✅] Bot running. Press CTRL+C to stop.")
