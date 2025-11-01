@@ -91,8 +91,6 @@ async def mybots(_, message):
         return await message.reply("❌ Anda belum premium.")
     await message.reply(f"Group ID: {rec.get('group_id')}\nPartners: {len(rec.get('partners',[]))}\nLast auto: {rec.get('last_auto')}")
 
-ᴏғғ, [01/11/2025 21:54]
-# /autotag : trigger auto run for that premium user's registered group (1x/day)
 @app.on_message(filters.command("autotag"))
 async def autotag_cmd(_, message):
     uid = message.from_user.id
