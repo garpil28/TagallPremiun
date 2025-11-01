@@ -1,0 +1,22 @@
+[Unit]
+Description=Garfield Auto TagAll Telegram Bot
+After=network.target
+
+[Service]
+# Ubah path berikut sesuai lokasi file bot kamu
+WorkingDirectory=/root/TagallPremiun
+ExecStart=/usr/bin/python3 -m GarfieldBot
+Restart=always
+RestartSec=5
+KillMode=process
+
+# Environment file (.env) berisi BOT_TOKEN, API_ID, API_HASH, dsb
+EnvironmentFile=/root/TagallPremiun/.env
+
+# Optional: simpan log di journalctl
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=GarfieldBot
+
+[Install]
+WantedBy=multi-user.target
