@@ -1,10 +1,10 @@
 import asyncio
+Import app 
 import random
 from pyrogram import filters
 from pyrogram.errors import FloodWait
 from pyrogram.enums import ChatMembersFilter
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from main import app
 from emoji_list import EMOJIS
 
 SPAM_CHATS = {}
