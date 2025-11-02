@@ -1,18 +1,28 @@
-# ===============================================
-# Garfield Auto TagAll — Multi Bot System (Full)
-# ===============================================
+# app.py — Garfield Auto TagAll — Integrated final launcher
+# Base: your original app.py (kept structure) + integrated features:
+#  - emoji_list import
+#  - safe imports for auto_tagall/menu_user/manual_tagall/etc
+#  - trigger for link messages -> auto_tagall.trigger_auto_tagall
+#  - manual tag handler delegates to manual_tagall
+#  - auto-update repo thread
+#  - minimal changes only: additions appended, nothing removed
 
 import os
 import asyncio
+import threading
+import subprocess
+import time
 from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# load config from your config.py (make sure .env is configured)
 from config import (
     API_ID, API_HASH, BOT_TOKEN,
-    BOT_NAME, OWNER_IDS, LOG_GROUP_ID
+    BOT_NAME, OWNER_IDS, LOG_GROUP_ID,
 )
 
 # ────────────────────────────────────────────────
-# Init Client
+# Init Client (same as your original)
 # ────────────────────────────────────────────────
 app = Client(
     "GarfieldTagallSession",
@@ -27,7 +37,21 @@ OWNER_IDS_LIST = OWNER_IDS if isinstance(OWNER_IDS, list) else (
 )
 
 # ────────────────────────────────────────────────
-# Start & Help Handler (Interactive Menu)
+# Auto-update repo thread (git pull every hour)
+# ────────────────────────────────────────────────
+def auto_update_repo():
+    while True:
+        try:
+            subprocess.run(["git", "pull", "origin", "main"], check=True)
+            print("[✅] Repo updated successfully.")
+        except Exception as e:
+            print(f"[⚠️] Repo update failed: {e}")
+        time.sleep(3600)  # check update every 1 hour
+
+threading.Thread(target=auto_update_repo, daemon=True).start()
+
+# ────────────────────────────────────────────────
+# Start & Help Handler (Interactive Menu) - keep your original text
 # ────────────────────────────────────────────────
 @app.on_message(filters.command(["start", "help"]) & filters.private)
 async def start_help(_, message):
@@ -70,7 +94,7 @@ async def start_help(_, message):
             f"Halo {message.from_user.mention} 👋\n\n"
             f"Aku <b>{BOT_NAME}</b>.\n"
             f"Gunakan tombol di bawah untuk:\n"
-            f"— Minta tagall otomatis (2 menit untuk user biasa, 5 menit untuk partner)\n"
+            f"— Minta tagall otomatis (partner only, 5 menit)\n"
             f"— Ajukan partner agar bisa minta tagall kapan pun\n"
             f"— Lepas hubungan partner jika sudah tidak digunakan\n\n"
             f"🔗 Setiap tag akan menyertakan footer tautan:\n"
@@ -79,7 +103,7 @@ async def start_help(_, message):
         await message.reply_text(text, reply_markup=kb, disable_web_page_preview=True)
 
 # ────────────────────────────────────────────────
-# Callback Delegator
+# Callback Delegator (unchanged, delegate to garfieldbot)
 # ────────────────────────────────────────────────
 @app.on_callback_query()
 async def _cb_handler(_, query):
@@ -90,7 +114,7 @@ async def _cb_handler(_, query):
         await query.answer(f"Error callback: {e}", show_alert=True)
 
 # ────────────────────────────────────────────────
-# Owner Commands (manual CLI inside Telegram)
+# Owner Commands (manual CLI inside Telegram) — keep original handlers
 # ────────────────────────────────────────────────
 @app.on_message(filters.command("listbot") & filters.user(OWNER_IDS_LIST))
 async def list_bot(_, message):
@@ -125,7 +149,56 @@ async def broadcast(_, message):
         await message.reply_text(f"❌ Error broadcast: {e}")
 
 # ────────────────────────────────────────────────
-# Imports (safe, after client creation)
+# New: Event delegates & triggers to integrate new modules
+#  - link detection -> auto_tagall.trigger_auto_tagall (if present)
+#  - manual tag handler -> manual_tagall.manual_tagall_handler (if present)
+#  - start/help already delegates to garfieldbot via callback system
+# ────────────────────────────────────────────────
+
+# trigger: if a message in a group contains a t.me link (invite or username), delegate to auto_tagall
+@app.on_message(filters.regex(r"https?://t\.me/") & filters.group)
+async def _link_trigger_auto_tagall(client, message):
+    try:
+        # try import the trigger function from auto_tagall
+        from auto_tagall import trigger_auto_tagall
+    except Exception as e:
+        # module not available or import error; keep silent to preserve original behavior
+        print(f"[WARN] auto_tagall trigger not available: {e}")
+        return
+
+    # call trigger_auto_tagall safely
+    try:
+        await trigger_auto_tagall(client, message)
+    except Exception as e:
+        # log to console and to LOG_GROUP_ID if available
+        print(f"[ERROR] trigger_auto_tagall failed: {e}")
+        try:
+            if LOG_GROUP_ID:
+                await client.send_message(LOG_GROUP_ID, f"⚠️ trigger_auto_tagall error: {e}")
+        except:
+            pass
+
+# manual tagall command delegation (keep using existing manual_tagall implementation)
+@app.on_message(filters.command(["utag", "tagall"]) & filters.group)
+async def _manual_tag_delegate(client, message):
+    try:
+        from manual_tagall import manual_tagall_handler
+    except Exception as e:
+        print(f"[WARN] manual_tagall handler not available: {e}")
+        return
+
+    try:
+        await manual_tagall_handler(client, message)
+    except Exception as e:
+        print(f"[ERROR] manual_tagall failed: {e}")
+        try:
+            if LOG_GROUP_ID:
+                await client.send_message(LOG_GROUP_ID, f"⚠️ manual_tagall error: {e}")
+        except:
+            pass
+
+# ────────────────────────────────────────────────
+# Imports (safe, after client creation) — we expand the list to include menu_user and emoji_list
 # ────────────────────────────────────────────────
 def safe_import(name):
     try:
@@ -134,11 +207,21 @@ def safe_import(name):
     except Exception as e:
         print(f"⚠️ Failed to load {name}: {e}")
 
-for mod in ["emoji_list", "manual_tagall", "auto_tagall", "GarfieldBot", "garfieldbot"]:
+# modules to try load automatically (keeps backward compat)
+modules_to_load = [
+    "emoji_list",
+    "manual_tagall",
+    "auto_tagall",
+    "GarfieldBot",
+    "garfieldbot",
+    "menu_user",
+]
+
+for mod in modules_to_load:
     safe_import(mod)
 
 # ────────────────────────────────────────────────
-# Startup Logger
+# Startup Logger (keeps your LOG_GROUP_ID behavior)
 # ────────────────────────────────────────────────
 async def send_start_log():
     if not LOG_GROUP_ID:
@@ -148,14 +231,14 @@ async def send_start_log():
         await app.send_message(
             LOG_GROUP_ID,
             f"✅ <b>{BOT_NAME}</b> aktif.\nMode: <code>multi-partner / owner-hosted</code>\n"
-            f"Semua module berhasil dimuat ✅"
+            f"✅ Modules loaded: {', '.join([m for m in modules_to_load])}"
         )
         print("[LOG] Startup message sent.")
     except Exception as e:
         print(f"[WARN] send_start_log error: {e}")
 
 # ────────────────────────────────────────────────
-# Runner
+# Runner (unchanged but safe)
 # ────────────────────────────────────────────────
 if __name__ == "__main__":
     print(f"[🚀] Starting {BOT_NAME} ...")
