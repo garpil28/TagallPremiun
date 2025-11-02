@@ -43,3 +43,23 @@ MAX_NONPARTNER_DURATION = int(os.getenv("MAX_NONPARTNER_DURATION", 120))
 # 🔰 Info versi
 VERSION = "GarfieldBot PRO MAX+"
 DEVELOPER = "kopi567"
+
+# 🔰 REPO INFOO 
+REPO_URL= https://github.com/garpil28/TagallPremiun
+
+# 🔰 SETINGAN WAKTU RESTAR / AUTO RESTART
+AUTO_RESTART_HOUR = int(os.getenv("AUTO_RESTART_HOUR", "24"))  # restart tiap 24 jam
+AUTO_RESTART_MINUTE = int(os.getenv("AUTO_RESTART_MINUTE", "0"))
+
+# 🔰 VARIABEL OPSIONAL
+DEBUG_MODE = os.getenv("DEBUG_MODE", "False").lower() in ["true", "1", "yes"]
+
+# 🔰 PRINT INFO KE CONSOLE
+print(f"[✅] Config loaded successfully for {BOT_NAME} (Owner: {OWNER_NAME})")
+
+# 🔰 CHANNEL & GROUP SUPPORT 
+SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/garfieldoffc")
+SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "https://t.me/galeriorng41")
+STORE_LINK = os.getenv("STORE_LINK", "https://t.me/storegarf")
+
+
