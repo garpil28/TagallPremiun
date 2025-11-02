@@ -1,4 +1,3 @@
-# config.py — GarfieldBot PRO MAX+
 import os
 from dotenv import load_dotenv
 
@@ -25,9 +24,9 @@ BROADCAST_DELAY = int(os.getenv("BROADCAST_DELAY", 2))
 BROADCAST_CHUNK = int(os.getenv("BROADCAST_CHUNK", 50))
 
 # === 🔰 TAGALL CONFIG ===
-TAG_BATCH_SIZE = int(os.getenv("TAG_BATCH_SIZE", 5))  # jumlah user per batch
-TAG_DELAY = int(os.getenv("TAG_DELAY", 5))  # jeda antar batch
-TAG_INTERVAL = int(os.getenv("TAG_INTERVAL", 300))  # delay antar tag otomatis
+TAG_BATCH_SIZE = int(os.getenv("TAG_BATCH_SIZE", 5))     # jumlah user per batch
+TAG_DELAY = int(os.getenv("TAG_DELAY", 5))               # jeda antar batch
+TAG_INTERVAL = int(os.getenv("TAG_INTERVAL", 300))       # jeda antar tag otomatis
 
 # === 🔰 FITUR AI & AUTO REPLY ===
 ENABLE_AUTOREPLY = os.getenv("ENABLE_AUTOREPLY", "True").lower() == "true"
@@ -36,8 +35,9 @@ ENABLE_AUTOREPLY = os.getenv("ENABLE_AUTOREPLY", "True").lower() == "true"
 ENABLE_SANGMATA = os.getenv("ENABLE_SANGMATA", "True").lower() == "true"
 SANGMATA_LOG_ID = int(os.getenv("SANGMATA_LOG_ID", 0))
 
-# === 🔰 DURASI TAGALL (BIAR GA SPAM) ===
-MAX_PARTNER_DURATION = int(os.getenv("MAX_PARTNER_DURATION", 300))  # partner = 5 menit & 2 limit per 1haru
+# === 🔰 DURASI TAGALL (KHUSUS PARTNER) ===
+MAX_PARTNER_DURATION = int(os.getenv("MAX_PARTNER_DURATION", 300))   # partner aktif 5 menit
+PARTNER_LIMIT_PER_DAY = int(os.getenv("PARTNER_LIMIT_PER_DAY", 2))   # maksimal 2x tag per hari
 
 # === 🔰 INFO VERSI ===
 VERSION = "GarfieldBot PRO MAX+"
@@ -47,7 +47,7 @@ DEVELOPER = "kopi567"
 REPO_URL = "https://github.com/garpil28/TagallPremiun"
 
 # === 🔰 AUTO RESTART SETTING ===
-AUTO_RESTART_HOUR = int(os.getenv("AUTO_RESTART_HOUR", "24"))  # restart tiap 24 jam
+AUTO_RESTART_HOUR = int(os.getenv("AUTO_RESTART_HOUR", "24"))
 AUTO_RESTART_MINUTE = int(os.getenv("AUTO_RESTART_MINUTE", "0"))
 
 # === 🔰 VARIABEL OPSIONAL ===
