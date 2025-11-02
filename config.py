@@ -37,8 +37,7 @@ ENABLE_SANGMATA = os.getenv("ENABLE_SANGMATA", "True").lower() == "true"
 SANGMATA_LOG_ID = int(os.getenv("SANGMATA_LOG_ID", 0))
 
 # === 🔰 DURASI TAGALL (BIAR GA SPAM) ===
-MAX_PARTNER_DURATION = int(os.getenv("MAX_PARTNER_DURATION", 300))  # partner = 5 menit
-MAX_NONPARTNER_DURATION = int(os.getenv("MAX_NONPARTNER_DURATION", 120))  # non partner = 2 menit
+MAX_PARTNER_DURATION = int(os.getenv("MAX_PARTNER_DURATION", 300))  # partner = 5 menit & 2 limit per 1haru
 
 # === 🔰 INFO VERSI ===
 VERSION = "GarfieldBot PRO MAX+"
